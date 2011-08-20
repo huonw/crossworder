@@ -109,9 +109,18 @@ class Clue(object):
             self._clue = clue
         else:
             return self._clue
+
+    def text_answer(self):
+        if self._answer:
+            return RE_WORD_SPLIT.sub('',self._answer)
+        else:
+            return None
+    def answer(self):
+        return self._answer
     def lengthstring(self):
         return self._lengthstring
-    
+    def length(self):
+        return self._length
     def startpoint(self):
         return(self._x,self._y)
         
@@ -130,11 +139,10 @@ class Clue(object):
     def resolve_names(self,clues):
         newclue = []
         for i,s in enumerate(RE_SPLIT_NAME.split(self._clue)):
-            print(i,s,file=sys.stderr)
             if i % 2:
                 if s in clues:
                     c = clues[s]
-                    newclue.append('%d %s' % (c.number(),c.direction_name(True)))
+                    newclue.append('%d-%s' % (c.number(),c.direction_name(True)))
                 else:
                     raise ValueError("Named clue '%s' not found" % s)
             else:
@@ -142,8 +150,14 @@ class Clue(object):
         self._clue = ''.join(newclue)
          
     def __str__(self):
-        return '%i. %s at (%i,%i) "%s" => "%s" (%s)' % (
+        if hasattr(self,'_number'):
+            return '%i. %s at (%i,%i) "%s" => "%s" (%s)' % (
                         self._number,
+                        dir2str(self._direction,True),
+                        self._x, self._y, self._clue,
+                        self._answer, self._lengthstring)
+        else:
+            return '  %s at (%i,%i) "%s" => "%s" (%s)' % (
                         dir2str(self._direction,True),
                         self._x, self._y, self._clue,
                         self._answer, self._lengthstring)

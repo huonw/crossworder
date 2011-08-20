@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import re, clue,sys
         
 
@@ -24,7 +25,6 @@ def load_clues(iterable):
                     count += 1
                     
                 clues[id] = c
-    print(clues,file=sys.stderr)            
     return (metadata,clues)
     
 def from_file(filename):
@@ -48,50 +48,66 @@ def make_grid(clues):
 
     xlen = maxx - minx
     ylen = maxy - miny
-    print(xlen,ylen,file=sys.stderr)
+
     grid = [[None] * xlen for _ in range(ylen)]
     
     for name,c in clues.items():
         x,y = c.startpoint()
         endx,endy = c.endpoint()
-        
+        a = c.text_answer()
+        if not a:
+            a = [None] * c.length()
+
         cur = grid[y][x]
         if not cur:
-            cur = (None,None)
-            
+            cur = (a[0],None,None)
+
+        if a[0] and cur[0] and a[0] != cur[0][0]:
+            raise ValueError("Mismatched letters ('%s' vs '%s') at (%d, %d)" % (cur[0],a[0],x,y))
+
         if c.is_across():
-            gridset = (c,cur[1])
-            for i in range(x,endx):
-                if not grid[y][i]:
-                    grid[y][i] = (None,None)
+            gridset = (cur[0],c,cur[2])
+            for char,i in zip(a[1:],range(x+1,endx)):
+                curgrid = grid[y][i]
+                if not curgrid:
+                    grid[y][i] = (char,None,None)
+                elif char and curgrid[0] != char:
+                    if not curgrid[0]:
+                        grid[y][i] = (char,curgrid[1],curgrid[2])
+                    else:
+                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,i,y))
         else:
-            gridset = (cur[0],c)
-            for i in range(y,endy):
-                if not grid[i][x]:
-                    grid[i][x] = (None,None)
-        
+            gridset = (cur[0],cur[1],c)
+            for char,i in zip(a[1:],range(y+1,endy)):
+                curgrid = grid[i][x]
+                if not curgrid:
+                    grid[i][x] = (char,None,None)
+                elif char and curgrid[0] != char:
+                    if not curgrid[0]:
+                        grid[i][x] = (char,curgrid[1],curgrid[2])
+                    else:
+                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,x,i))
         grid[y][x] = gridset
             
     count = 0
     for row in grid:
         for c in row:
-            if c:
-                if c[0] or c[1]:
+            if c and (c[1] or c[2]):
                     count += 1
-                    if c[0]:
-                        c[0].number(count)
                     if c[1]:
                         c[1].number(count)
+                    if c[2]:
+                        c[2].number(count)
     for name,c in clues.items():
         c.resolve_names(clues)
         
     return grid
     
-def render_as_latex(grid,metadata={}):
+def render_as_latex(grid,metadata={},answers=False):
     ylen = len(grid)
     xlen = len(grid[0])
     
-    latex = [r'''\documentclass[a4paper]{article}
+    latex = [r'''\documentclass[a4paper,10pt]{article}
 \usepackage[top=1in]{geometry}
 \usepackage{tikz}
 \usepackage{multicol}
@@ -108,7 +124,9 @@ def render_as_latex(grid,metadata={}):
     
     latex.append(r'''\thispagestyle{empty}\begin{figure}[h]
     \centering
-        \begin{tikzpicture}[scale=0.8,number/.style={below right,font=\scriptsize}]''')
+        \begin{tikzpicture}[scale=0.8,
+                  number/.style={below right,font=\scriptsize},
+                  answer/.style={color=gray,font=\scshape}]''')
     latex.append(r'\draw[black] (0,%d) grid (%d,0);' % (-ylen,xlen))
     
     across = []
@@ -117,13 +135,15 @@ def render_as_latex(grid,metadata={}):
     for i,row in enumerate(grid):
         for j,c in enumerate(row):
             if c:
-                if c[0] or c[1]:
-                    if c[0]:
-                        num = c[0].number()
-                        across.append(c[0])
+                if answers:
+                    latex.append(r'\node[answer] at (%.1f,%.1f) {%s};' % (j+0.5,-i-0.5,c[0] if c[0] else '-'))
+                if c[1] or c[2]:
                     if c[1]:
                         num = c[1].number()
-                        down.append(c[1])
+                        across.append(c[1])
+                    if c[2]:
+                        num = c[2].number()
+                        down.append(c[2])
 
                     latex.append(r'\node[number] at (%d,%d) {%d};' % (j,-i,num))
             else:
@@ -142,13 +162,26 @@ def render_as_latex(grid,metadata={}):
     
     
 if __name__ == '__main__':
-    import sys
+    import sys, getopt
+    
+    ops,args = getopt.getopt(sys.argv[1:],'A')
+
+    answers = False
+    for op,arg in ops:
+        if op == '-A':
+            answers = True
+
     f = sys.stdin
-    if len(sys.argv) > 1:
-        f = open(sys.argv[1],'rU')
+    if args:
+        f = open(args[0],'rU')
     m,cl=load_clues(f)
-    g = make_grid(cl)
-    print(render_as_latex(g,m))
+    if cl:
+        try:
+            g = make_grid(cl)
+        except ValueError as e:
+            print("Error: %s" % e,file=sys.stderr)
+            sys.exit(1)
+        print(render_as_latex(g,m,answers))
     
     
     
