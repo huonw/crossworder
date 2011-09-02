@@ -5,6 +5,8 @@ RE_CLUE_NUMBER = re.compile(r'^\([0-9]+([,-.](\([^\)]*\))?[0-9]+)*\)$')
 RE_PUNCT = re.compile(r'[,.-]')
 RE_WORD_SPLIT = re.compile(r'([ ,.-])')
 
+def parse_clues
+
 def tokenise_line(_s):
     # recieve line in the form "[<name>]direction|x|y|answer|clue"
     # if an answer spans multiple clues, then <name> can be placed just before
@@ -20,11 +22,10 @@ def tokenise_line(_s):
             s = s.split('>',1)[1]
             
         t = tuple(s.split('|',4))
-        (_direction,_x,_y,_answer,clue) = t
+        (_directions,_xs,_ys,_answers,clue) = t
     except ValueError as e:
         raise ValueError("Line could not be parsed: %s" % s)
-    data = {}
-    
+
     first_direction = _direction.strip()[:1].lower()
     if first_direction == 'a':
         direction = Direction.ACROSS 
@@ -126,9 +127,9 @@ class Clue(object):
         
     def endpoint(self):
         if self.is_across():
-           return (self._x + self._length, self._y)
+           return (self._x + self._length - 1, self._y)
         else:
-           return (self._x, self._y + self._length)
+           return (self._x, self._y + self._length - 1)
     
     def is_across(self):
         return self._direction == Direction.ACROSS

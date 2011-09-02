@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import re, clue,sys
-        
 
 def load_clues(iterable):
     clues = {}
@@ -18,13 +17,13 @@ def load_clues(iterable):
                 except:
                     pass
             elif start != '#':
-                c = clue.Clue(stripped)
-                id =  c.name()
-                if not id:
-                    id = count 
-                    count += 1
+                for c in clue.parse_clues(stripped):
+                    id =  c.name()
+                    if not id:
+                        id = count 
+                        count += 1
                     
-                clues[id] = c
+                    clues[id] = c
     return (metadata,clues)
     
 def from_file(filename):
@@ -37,37 +36,40 @@ def make_grid(clues):
     
     for name,c in clues.items():
         for x,y in (c.endpoint(),c.startpoint()):
-            if x > maxx:
-                maxx = x
-            if x < minx:
-                minx = x    
-            if y > maxy:
-                maxy = y
-            if y < miny:
-                miny = y
+            maxx = max(maxx,x)
+            minx = min(minx,x)
+            maxy = max(maxy,y)
+            miny = min(miny,y)
 
-    xlen = maxx - minx
-    ylen = maxy - miny
+    xlen = maxx - minx + 1
+    ylen = maxy - miny + 1
 
     grid = [[None] * xlen for _ in range(ylen)]
-    
+   
     for name,c in clues.items():
         x,y = c.startpoint()
         endx,endy = c.endpoint()
+        x -= minx
+        y -= miny
+        endx -= minx
+        endy -= miny
+
         a = c.text_answer()
         if not a:
             a = [None] * c.length()
-
+        
         cur = grid[y][x]
         if not cur:
             cur = (a[0],None,None)
+        elif not cur[0]:
+            cur = (a[0],cur[1],cur[2])
 
         if a[0] and cur[0] and a[0] != cur[0][0]:
             raise ValueError("Mismatched letters ('%s' vs '%s') at (%d, %d)" % (cur[0],a[0],x,y))
 
         if c.is_across():
             gridset = (cur[0],c,cur[2])
-            for char,i in zip(a[1:],range(x+1,endx)):
+            for char,i in zip(a[1:],range(x+1,endx + 1)):
                 curgrid = grid[y][i]
                 if not curgrid:
                     grid[y][i] = (char,None,None)
@@ -78,7 +80,7 @@ def make_grid(clues):
                         raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,i,y))
         else:
             gridset = (cur[0],cur[1],c)
-            for char,i in zip(a[1:],range(y+1,endy)):
+            for char,i in zip(a[1:],range(y+1,endy + 1)):
                 curgrid = grid[i][x]
                 if not curgrid:
                     grid[i][x] = (char,None,None)
@@ -108,13 +110,12 @@ def render_as_latex(grid,metadata={},answers=False):
     xlen = len(grid[0])
     
     latex = [r'''\documentclass[a4paper,10pt]{article}
-\usepackage[top=1in]{geometry}
+\usepackage[margin=%s]{geometry}
 \usepackage{tikz}
 \usepackage{multicol}
-
+\renewcommand{\familydefault}{\sfdefault}
 \setlength\parindent{0pt}
-
-\begin{document}''']
+\begin{document}''' % metadata.get('margin','1in')]
     
     
     if 'title' in metadata and 'author' in metadata:
@@ -124,9 +125,9 @@ def render_as_latex(grid,metadata={},answers=False):
     
     latex.append(r'''\thispagestyle{empty}\begin{figure}[h]
     \centering
-        \begin{tikzpicture}[scale=0.8,
+        \begin{tikzpicture}[scale=%s,
                   number/.style={below right,font=\scriptsize},
-                  answer/.style={color=gray,font=\scshape}]''')
+                  answer/.style={color=gray,font=\scshape}]''' % metadata.get('scale','0.8'))
     latex.append(r'\draw[black] (0,%d) grid (%d,0);' % (-ylen,xlen))
     
     across = []
@@ -152,10 +153,10 @@ def render_as_latex(grid,metadata={},answers=False):
     latex.append(r'\begin{multicols}{2}')
     latex.append(r'\subsection*{Across}')
     
-    latex += ['%d. %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in across]
+    latex += ['\\textbf{%d} %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in across]
     
-    latex.append(r'\columnbreak\subsection*{Down}')
-    latex += ['%d. %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in down]
+    latex.append(r'\subsection*{Down}')
+    latex += ['\\textbf{%d} %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in down]
 
     latex.append(r'\end{multicols}\end{document}')
     return '\n'.join(latex)
@@ -182,6 +183,3 @@ if __name__ == '__main__':
             print("Error: %s" % e,file=sys.stderr)
             sys.exit(1)
         print(render_as_latex(g,m,answers))
-    
-    
-    
