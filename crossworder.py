@@ -110,7 +110,7 @@ def render_as_latex(grid,metadata={},answers=False):
     xlen = len(grid[0])
     
     latex = [r'''\documentclass[a4paper,10pt]{article}
-\usepackage[margin=%s]{geometry}
+\usepackage[landscape,margin=%s]{geometry}
 \usepackage{tikz}
 \usepackage{multicol}
 \renewcommand{\familydefault}{\sfdefault}
@@ -119,16 +119,21 @@ def render_as_latex(grid,metadata={},answers=False):
     
     
     if 'title' in metadata and 'author' in metadata:
-        latex.append(r'\title{%s}'%metadata['title'])
-        latex.append(r'\author{%s}'%metadata['author'])
-        latex.append(r'\date{}\maketitle')
+        latex.append(r'\centerline{\Large %s}\medskip'%metadata['title'])
+        latex.append(r'\centerline{%s}\medskip'%metadata['author'])
+        
     
-    latex.append(r'''\thispagestyle{empty}\begin{figure}[h]
-    \centering
+
+
+    latex.append(r'''\thispagestyle{empty}
+\begin{multicols}{2}''')
+    
+    tikz = []
+    tikz.append(r'''\vspace*{\fill}\begin{center}
         \begin{tikzpicture}[scale=%s,
                   number/.style={below right,font=\scriptsize},
                   answer/.style={color=gray,font=\scshape}]''' % metadata.get('scale','0.8'))
-    latex.append(r'\draw[black] (0,%d) grid (%d,0);' % (-ylen,xlen))
+    tikz.append(r'\draw[black] (0,%d) grid (%d,0);' % (-ylen,xlen))
     
     across = []
     down = []
@@ -137,7 +142,7 @@ def render_as_latex(grid,metadata={},answers=False):
         for j,c in enumerate(row):
             if c:
                 if answers:
-                    latex.append(r'\node[answer] at (%.1f,%.1f) {%s};' % (j+0.5,-i-0.5,c[0] if c[0] else '-'))
+                    tikz.append(r'\node[answer] at (%.1f,%.1f) {%s};' % (j+0.5,-i-0.5,c[0] if c[0] else '-'))
                 if c[1] or c[2]:
                     if c[1]:
                         num = c[1].number()
@@ -146,17 +151,31 @@ def render_as_latex(grid,metadata={},answers=False):
                         num = c[2].number()
                         down.append(c[2])
 
-                    latex.append(r'\node[number] at (%d,%d) {%d};' % (j,-i,num))
+                    tikz.append(r'\node[number] at (%d,%d) {%d};' % (j,-i,num))
             else:
-                latex.append(r'\fill[black] (%d,%d) rectangle (%d,%d);' % (j,-i,j+1,-i-1))
-    latex.append(r'\end{tikzpicture}\end{figure}')
+                tikz.append(r'\fill[black] (%d,%d) rectangle (%d,%d);' % (j,-i,j+1,-i-1))
+    tikz.append(r'\end{tikzpicture}\end{center}\vspace*{\fill}\vspace*{\fill}\vspace*{\fill}')
+    
     latex.append(r'\begin{multicols}{2}')
     latex.append(r'\subsection*{Across}')
     
-    latex += ['\\textbf{%d} %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in across]
+    def rrr(num, clu, lstring, children):
+        extra = []
+        if children:
+            for cccc in children:
+                extra.append("%d-%s" % (cccc.number(), cccc.direction_name(True)))
+        if lstring is None:
+            return '\\textbf{%d%s} %s' % (num,', '+ ', '.join(extra) if extra else '', clu)
+        else:
+            return '\\textbf{%d%s} %s (%s)' % (num,', ' + ', '.join(extra) if extra else '', clu,lstring)
+    
+    latex += [rrr(c.number(), c.clue(),c.lengthstring(),c.children()) + '\n' for c in across]
     
     latex.append(r'\subsection*{Down}')
-    latex += ['\\textbf{%d} %s (%s)\n' % (c.number(), c.clue(), c.lengthstring()) for c in down]
+    latex += [rrr(c.number(), c.clue(), c.lengthstring(),c.children()) + '\n' for c in down]
+    latex.append(r'\end{multicols}')
+    
+    latex += tikz
 
     latex.append(r'\end{multicols}\end{document}')
     return '\n'.join(latex)
