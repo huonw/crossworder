@@ -79,22 +79,23 @@ def tokenise_line(_s):
         
         if is_lengths:
             lengths = map(int,RE_PUNCT.split(_answer))
+            myanswer = None
         else:
-            
             lengths = map(len, RE_PUNCT.split(_answer))
+            myanswer = _answer
         mylength = sum(lengths)
             
         
         if num_parts > 1:
             if i:
-                child = Clue(direction,name,x,y,_answer,None,mylength,None, [], parent)
+                child = Clue(direction,name,x,y,myanswer,None,mylength,None, [], parent)
                 clues.append(child)
                 parent.add_child(child)
             else:
-                parent = Clue(direction,name,x,y,_answer,lengthstring,mylength,clue,[])
+                parent = Clue(direction,name,x,y,myanswer,lengthstring,mylength,clue,[])
                 clues.append(parent)
         else:
-            c = Clue(direction,name,x,y,_answer,lengthstring,length,clue,[],[])
+            c = Clue(direction,name,x,y,myanswer,lengthstring,length,clue,[],[])
             clues.append(c)
     return clues
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import re, clue,sys
 
 def load_clues(iterable):
@@ -13,7 +13,20 @@ def load_clues(iterable):
                 # metadata
                 try:
                     title,data = stripped[1:].split(':',1)
-                    metadata[title.lower().strip()] = data.strip()
+                    parsed = title.lower().strip()
+                    sdata = data.strip()
+                    if parsed:
+                        if len(parsed) > 1 and parsed[-1] == '+':
+                            parsed = parsed[:-1]
+                            if parsed in metadata:
+                                if isinstance(metadata[parsed],list):
+                                    metadata[parsed].append(sdata)
+                                else:
+                                    metadata[parsed] = [metadata[parsed], sdata]
+                            else:
+                                metdata[parsed] = [sdata]
+                        else:
+                            metadata[parsed] = data.strip()
                 except:
                     pass
             elif start != '#':
@@ -65,7 +78,7 @@ def make_grid(clues):
             cur = (a[0],cur[1],cur[2])
 
         if a[0] and cur[0] and a[0] != cur[0][0]:
-            raise ValueError("Mismatched letters ('%s' vs '%s') at (%d, %d)" % (cur[0],a[0],x,y))
+            raise ValueError("Mismatched letters ('%s' vs '%s') at (%d, %d)" % (cur[0],a[0],x+minx,y+miny))
 
         if c.is_across():
             gridset = (cur[0],c,cur[2])
@@ -77,7 +90,7 @@ def make_grid(clues):
                     if not curgrid[0]:
                         grid[y][i] = (char,curgrid[1],curgrid[2])
                     else:
-                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,i,y))
+                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,i+minx,y+miny))
         else:
             gridset = (cur[0],cur[1],c)
             for char,i in zip(a[1:],range(y+1,endy + 1)):
@@ -88,7 +101,7 @@ def make_grid(clues):
                     if not curgrid[0]:
                         grid[i][x] = (char,curgrid[1],curgrid[2])
                     else:
-                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,x,i))
+                        raise ValueError("Mismatched letters ('%s' vs. '%s') at (%d, %d)" % (curgrid[0],char,x+minx,i+miny))
         grid[y][x] = gridset
             
     count = 0
@@ -108,31 +121,69 @@ def make_grid(clues):
 def render_as_latex(grid,metadata={},answers=False):
     ylen = len(grid)
     xlen = len(grid[0])
-    
+
+    break_page = 'break' in metadata and metadata['break'].lower() == "true"
+
+    landscape = metadata.get('orientation','portrait').lower() == 'landscape'
+    margin = 'margin=1in'
+    if 'margin' in metadata:
+        if ' ' in metadata['margin'].strip():
+            l = metadata['margin'].split()
+            if len(l) == 2:
+                margin = 'top={0},right={1},bottom={0},left={1}'.format(*l)
+            elif len(l) == 4:
+                margin = 'top=%s,right=%s,bottom=%s,left=%s' % tuple(l)
+            else:
+                raise ValueError("Invalid margin declaration: %s" % metadata['margin'])
+        else:
+            margin = 'margin=%s' % metadata['margin']
+
     latex = [r'''\documentclass[a4paper,10pt]{article}
-\usepackage[landscape,margin=%s]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[%s,%s]{geometry}
 \usepackage{tikz}
+\usetikzlibrary{positioning}
 \usepackage{multicol}
-\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath}
+\usepackage{todonotes}
+\usepackage{scalefnt}''' % (landscape and 'landscape' or 'portrait', margin)]
+    RE_OPTIONS = re.compile(r'^\[([^\]]*)\](.*)$')
+    
+    packagesl = metadata.get('package',[])
+    if not isinstance(packagesl, list):
+        packagesl = [packagesl]
+    for p in packagesl:
+        m = RE_OPTIONS.match(p)
+        options = ''
+        name = p
+        if m:
+            options = m.group(1)
+            name = m.group(2)
+        latex.append(r'\usepackage[%s]{%s}' % (options,name))
+
+    latex.append(r'''\renewcommand{\familydefault}{\sfdefault}
 \setlength\parindent{0pt}
-\begin{document}''' % metadata.get('margin','1in')]
+\begin{document}''')
     
     
     if 'title' in metadata and 'author' in metadata:
         latex.append(r'\centerline{\Large %s}\medskip'%metadata['title'])
         latex.append(r'\centerline{%s}\medskip'%metadata['author'])
         
-    
 
-
-    latex.append(r'''\thispagestyle{empty}
-\begin{multicols}{2}''')
+    latex.append(r'\pagestyle{empty}\thispagestyle{empty}')
+    if landscape:
+        latex.append(r'\begin{multicols}{2}')
     
-    tikz = []
-    tikz.append(r'''\vspace*{\fill}\begin{center}
-        \begin{tikzpicture}[scale=%s,
-                  number/.style={below right,font=\scriptsize},
-                  answer/.style={color=gray,font=\scshape}]''' % metadata.get('scale','0.8'))
+    scale = metadata.get('scale','0.8')
+
+    tikz = [r'\vspace*{\fill}']
+    tikz.append(r'''\begin{center}
+        \scalebox{%s}{
+        \begin{tikzpicture}[number/.style={below right},
+                  answer/.style={color=gray,font=\scshape}]''' % (scale))
     tikz.append(r'\draw[black] (0,%d) grid (%d,0);' % (-ylen,xlen))
     
     across = []
@@ -141,8 +192,8 @@ def render_as_latex(grid,metadata={},answers=False):
     for i,row in enumerate(grid):
         for j,c in enumerate(row):
             if c:
-                if answers:
-                    tikz.append(r'\node[answer] at (%.1f,%.1f) {%s};' % (j+0.5,-i-0.5,c[0] if c[0] else '-'))
+                if answers and c[0]:
+                    tikz.append(r'\node[answer] at (%.1f,%.1f) {%s};' % (j+0.5,-i-0.5,c[0]))
                 if c[1] or c[2]:
                     if c[1]:
                         num = c[1].number()
@@ -154,8 +205,19 @@ def render_as_latex(grid,metadata={},answers=False):
                     tikz.append(r'\node[number] at (%d,%d) {%d};' % (j,-i,num))
             else:
                 tikz.append(r'\fill[black] (%d,%d) rectangle (%d,%d);' % (j,-i,j+1,-i-1))
-    tikz.append(r'\end{tikzpicture}\end{center}\vspace*{\fill}\vspace*{\fill}\vspace*{\fill}')
+    tikz.append(r'''
+        \end{tikzpicture}}
+    \end{center}''')
+    #if landscape:
+    if True:
+        tikz.append(r'\vspace*{\fill}\vspace*{\fill}\vspace*{\fill}\vspace*{\fill}')
+    #else:
+        #tikz.append(r'\vspace*{\fill}')
+        latex += tikz
+        
     
+    if break_page:
+        latex.append(r'\pagebreak\vspace*{\fill}')
     latex.append(r'\begin{multicols}{2}')
     latex.append(r'\subsection*{Across}')
     
@@ -174,10 +236,13 @@ def render_as_latex(grid,metadata={},answers=False):
     latex.append(r'\subsection*{Down}')
     latex += [rrr(c.number(), c.clue(), c.lengthstring(),c.children()) + '\n' for c in down]
     latex.append(r'\end{multicols}')
-    
-    latex += tikz
+    if break_page:
+        latex.append(r'\vspace*{\fill}\vspace*{\fill}\vspace*{\fill}')
+    if landscape:
+        latex += tikz
+        latex.append(r'\end{multicols}')
 
-    latex.append(r'\end{multicols}\end{document}')
+    latex.append(r'\end{document}')
     return '\n'.join(latex)
     
     
