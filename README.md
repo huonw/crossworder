@@ -1,7 +1,7 @@
 # Crossworder
 By Huon Wilson
 
-[Crossworder](https://github.com/dbaupp/crossworder) is a python3 program that reads a file specifying crossword clues and answers (and their position and direction), and outputs the crossword in [LaTeX](https://en.wikipedia.org/wiki/LaTeX) with [Ti*k*Z](https://en.wikipedia.org/wiki/PGF/TikZ) with options like whether to print answer or not, and the ability to change the formatting.
+[Crossworder](https://github.com/dbaupp/crossworder) is a python3 program that reads a file specifying crossword clues and answers (and their position and direction), and outputs the crossword in [LaTeX](https://en.wikipedia.org/wiki/LaTeX) with [TikZ](https://en.wikipedia.org/wiki/PGF/TikZ) with options like whether to print answer or not, and the ability to change the formatting.
 
 It detects mismatched letters, but doesn't check for clues running on to each other, or overlapping or anything like that. The size of the grid and the number for each clue is automatically computed based on the clues (so `x` and `y` below can be negative, for example).
 
@@ -91,7 +91,7 @@ The only command line option supported is `-A`, which will print the answers ins
 ## Output
 The output is LaTeX. It loads the following packages: `inputenc`, `fontenc`, `lmodern`, `geometry`, `tikz`, `multicol` and `amsmath`. 
 
-The crossword grid is draw using Ti*k*Z, and the clues are placed in two columns using `multicol`.
+The crossword grid is draw using TikZ, and the clues are placed in two columns using `multicol`.
 
 ## License
 See LICENSE
