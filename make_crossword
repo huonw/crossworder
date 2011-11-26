@@ -1,5 +1,0 @@
-#!/bin/bash
-
-f=$(mktemp)
-./crossworder.py $2 "$1" > $f && pdflatex -interaction=nonstopmode -halt-on-error -jobname "$(basename $1 | sed 's/\.[^\.]*$//')" $f > /dev/null
-rm $f

@@ -1,0 +1,17 @@
+# very simple, just a few plain clues
+# with some changed options
+
+@title: Example$_1$
+@author: Huon Wilson
+@margin: 2in
+@package+: [textsize=scriptsize]todonotes
+@package+: wasysym
+
+a|2|3|crack|Snap! Missing the French! Pop!
+a|0|8|misspelling|Potter's failing is ours two
+
+# here's a length spec clue
+a|4|5|(3,3)|\todo[inline]{put a clue here \smiley}
+
+d|0|1|garbageman|Broken the anagram? Plead for a recycler
+d|6|5|employ|Use it like a boss

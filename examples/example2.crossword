@@ -1,0 +1,30 @@
+# Has split clues and references
+
+@title: Example$_2$
+@author: Huon Wilson
+
+# landscape!
+@orientation: landscape
+
+# very small crossword
+@scale: 0.4
+
+# different paper and fontsize
+@documentclass: [a3paper,12pt] article
+
+# very peculiar margins
+@margin: 2in 1in 3in 4in
+
+a|10|5|sesquicentenary|150 years from the <nicest> sane query
+<edits>a|12|7|edits|Placed itself inside the changes
+a|18|7|edict|A declaration that endless <edits> are about \$100
+a|18|9|curdling|Blood-chilling like very unprocessed cheese and fish
+a|6|11|red herrings|The crimson fish are very distracting!
+
+
+d|10|9|abetting|First it sounds like wagering is helping criminals
+d|12|9|israeli|For example, Jesus is a lire in shape
+<nicest>d|16|3|nicest|A jumping insect is most kind
+d|16|10|is cheeky|Heck yes! I made a description of an impudent one
+d|18|12|flashy|Ostentatious like a lighthouse
+d&a|18&1|3&17|sentence &fragment|This prison piece.
