@@ -17,8 +17,9 @@ The format for each clue is
 where
 
 - `name` is an optional name for the clue, surrounded by `<...>`, it
-  can be used in the actual text of clues to refer to 3-down, or
-  10-across by putting `<name>` in the text in the appropriate place
+  can be used in the actual text of clues to refer to `3-down`, or
+  `10-across` (for example) by putting `<name>` in the text of a clue
+  in the appropriate place
 - `direction` is either `a` (across) or `d` (down)
 - `x` and `y` are integers that represent the point `(x,y)` where the
   first letter of the answer goes on the grid
@@ -39,7 +40,7 @@ A clue can be broken across multiple series of cells, e.g.
 
 This is done by putting multiple values in each of `direction`, `x`, `y` and `answer`, separated by `&`, in the order that the clues should be (NB. if `answer` is a length spec then the `&` goes inside the spec), e.g. the example above is (ignoring the numbers and references, which are generated automatically)
 
-    d&a|18&1|3&17|(8,&8)|This prison piece.
+    d&a|18&1|3&17|(8&8)|This prison piece.
 
 ### Metadata
 Metadata control the output, all metadata is optional. The format for
