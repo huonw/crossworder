@@ -83,7 +83,7 @@ To run crossworder, open a terminal to the directory with crossworder.py and run
 
     python3 crossworder.py [options] filename
     
-It outputs to stdout, so to write to a file try
+It outputs to stdout, so to write to a file, try
     
     python3 crossworder.py [options] filename > outputfile.tex
     
@@ -92,7 +92,7 @@ The only command line option supported is `-A`, which will print the answers ins
 ## Output
 The output is LaTeX. It loads the following packages: `inputenc`, `fontenc`, `lmodern`, `geometry`, `tikz`, `multicol` and `amsmath`. 
 
-The crossword grid is draw using TikZ, and the clues are placed in two columns using `multicol`.
+The crossword grid is drawn using TikZ, and the clues are placed in two columns using `multicol`.
 
 ## License
 See LICENSE
